@@ -19,7 +19,7 @@
  * @brief Template for a Host Application Source File.
  */
 
-#define __mram_ptr 
+#define __mram_ptr
 
 bool print_debug = false;
 
@@ -78,17 +78,19 @@ void init_dpus() {
  */
 int main(int argc, char *argv[]) {
     driver::init();
-    dpu_control::alloc(DPU_ALLOCATE_ALL);
-    {
-        cpu_coverage_timer->start();
-        dpu_binary_switch_to(dpu_binary::init_binary);
-        init_wram_save_pos();
-        init_dpus();
-        cpu_coverage_timer->end();
-        cpu_coverage_timer->reset();
-        pim_coverage_timer->reset();
-    }
-    
+    // dpu_control::alloc(DPU_ALLOCATE_ALL);
+    // {
+    //     cpu_coverage_timer->start();
+    //     dpu_binary_switch_to(dpu_binary::init_binary);
+    //     init_wram_save_pos();
+    //     init_dpus();
+    //     cpu_coverage_timer->end();
+    //     cpu_coverage_timer->reset();
+    //     pim_coverage_timer->reset();
+    // }
+
+    nr_of_dpus = NR_DPUS;
+    printf("nr_of_dpus=%d, NR_DPUS=%d\n", nr_of_dpus, NR_DPUS);
     driver::exec(argc, argv);
     // l3counters.print();
     // l2counters.print();
@@ -97,6 +99,6 @@ int main(int argc, char *argv[]) {
     // datacounters1.print();
     // datacounters2.print();
     // datacounters3.print();
-    dpu_control::free();
+    //dpu_control::free();
     return 0;
 }
