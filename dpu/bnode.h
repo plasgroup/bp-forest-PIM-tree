@@ -575,9 +575,10 @@ static inline void cache_truncate(mBptr nn, int64_t key, int ht,
 }
 
 #ifdef DPU_SCAN
-static inline int b_scan(int64_t bb, int64_t ee, mBptr nn, mpint64_t keys, mpint64_t addrs) {
+static inline int b_scan(int64_t bb, int64_t ee, mBptr nn, mpint64_t addrs) {
     int len = 0;
     int64_t lkeys = INT64_MIN;
+    int64_t pred_addr = 0;
     Bnode bn;
     m_read_single(nn, &bn, sizeof(Bnode));
     int nnlen = (int)bn.len;
@@ -594,12 +595,10 @@ static inline int b_scan(int64_t bb, int64_t ee, mBptr nn, mpint64_t keys, mpint
         for (int j = 0; j < curlen; j ++) {
             int64_t nnkey = nnkeys[j];
             if (nnkey >= bb && nnkey <= ee) {
-                keys[len] = nnkey;
                 addrs[len] = nnaddrs[j];
                 len++;
             } else if(nnkey < bb && nnkey >= lkeys){
-                keys[nnlen - 1] = nnkey;
-                addrs[nnlen - 1] = nnaddrs[j];
+                pred_addr = nnaddrs[j];
                 lkeys = nnkey;
             }
         }
@@ -609,9 +608,8 @@ static inline int b_scan(int64_t bb, int64_t ee, mBptr nn, mpint64_t keys, mpint
     }
 
     if(lkeys != INT64_MIN) {
-        lkeys = addrs[nnlen - 1];
-        addrs[len] = addrs[0];
-        addrs[0] = lkeys;
+        for (int i = len; i > 0; i--) addrs[i] = addrs[i - 1];
+        addrs[0] = pred_addr;
         len++;
     }
     return len;

@@ -360,8 +360,8 @@ void execute(int l, int r) {
                 nn = (mBptr)addr.addr;
                 nnlen = nn->len;
                 replyptr = (mpint64_t)push_variable_reply_zero_copy(
-                    tasklet_id, S64((nnlen << 1) + 1));
-                nnlen = b_scan(bb, ee, nn, replyptr + 1 + nnlen, replyptr + 1);
+                    tasklet_id, S64(nnlen + 2));
+                nnlen = b_scan(bb, ee, nn, replyptr + 1);
                 replyptr[0] = nnlen;
             }
             break;

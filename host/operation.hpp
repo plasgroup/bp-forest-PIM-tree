@@ -3264,20 +3264,21 @@ class pim_skip_list {
             auto block_idx_scan = parlay::scan(block_nums);
             auto range_tmp =
                 parlay::sequence<scan_operation>(block_idx_scan.second);
+            auto split_at = [&](int64_t i, int64_t j) -> int64_t {
+                int64_t bs = ops[0].rkey - ops[0].lkey, off, sum;
+                if (__builtin_mul_overflow(bs, j, &off) ||
+                    __builtin_add_overflow(ops_merged[i].lkey, off, &sum) ||
+                    sum > ops_merged[i].rkey)
+                    return ops_merged[i].rkey;
+                return sum;
+            };
             if (range_num < (length >> 4)) {
                 for (int i = 0; i < range_num; i++) {
                     if (block_nums[i] > 1) {
                         int64_t start_idx = block_idx_scan.first[i];
-                        int64_t block_size = ops[0].rkey - ops[0].lkey;
                         parfor_wrap(0, block_nums[i], [&](int64_t j) {
-                            range_tmp[start_idx + j].lkey =
-                                ops_merged[i].lkey + block_size * j;
-                            range_tmp[start_idx + j].rkey =
-                                ops_merged[i].lkey + block_size * (j + 1);
-                            if (range_tmp[start_idx + j].rkey >
-                                ops_merged[i].rkey)
-                                range_tmp[start_idx + j].rkey =
-                                    ops_merged[i].rkey;
+                            range_tmp[start_idx + j].lkey = split_at(i, j);
+                            range_tmp[start_idx + j].rkey = split_at(i, j + 1);
                         });
                     } else
                         range_tmp[block_idx_scan.first[i]] = ops_merged[i];
@@ -3286,16 +3287,9 @@ class pim_skip_list {
                 parfor_wrap(0, range_num, [&](int i) {
                     if (block_nums[i] > 1) {
                         int64_t start_idx = block_idx_scan.first[i];
-                        int64_t block_size = ops[0].rkey - ops[0].lkey;
                         for (int64_t j = 0; j < block_nums[i]; j++) {
-                            range_tmp[start_idx + j].lkey =
-                                ops_merged[i].lkey + block_size * j;
-                            range_tmp[start_idx + j].rkey =
-                                ops_merged[i].lkey + block_size * (j + 1);
-                            if (range_tmp[start_idx + j].rkey >
-                                ops_merged[i].rkey)
-                                range_tmp[start_idx + j].rkey =
-                                    ops_merged[i].rkey;
+                            range_tmp[start_idx + j].lkey = split_at(i, j);
+                            range_tmp[start_idx + j].rkey = split_at(i, j + 1);
                         }
                     } else
                         range_tmp[block_idx_scan.first[i]] = ops_merged[i];
