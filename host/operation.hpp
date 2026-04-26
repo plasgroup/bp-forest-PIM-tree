@@ -3092,16 +3092,18 @@ class pim_skip_list {
                                     ->get_reply(scan_taskpos[i << 1],
                                                 addrs_in[i << 1].id);
                             int len = bssr->len;
-                            addrs_out[i << 1] = bssr->addr[0];
-                            if (len == 1)
-                                addrs_out[(i << 1) + 1] = addrs_out[i << 1];
-                            else if (len > 1)
-                                addrs_out[(i << 1) + 1] = bssr->addr[len - 1];
-                            int ss =
-                                (i == 0 ? 0 : res_node_lens[(i << 1) - 1]) +
-                                (range_num << 1);
-                            for (int k = 0; k < len - 2; k++)
-                                addrs_out[ss + k] = bssr->addr[k + 1];
+                            if (len > 0) {
+                                addrs_out[i << 1] = bssr->addr[0];
+                                if (len == 1)
+                                    addrs_out[(i << 1) + 1] = addrs_out[i << 1];
+                                else
+                                    addrs_out[(i << 1) + 1] = bssr->addr[len - 1];
+                                int ss =
+                                    (i == 0 ? 0 : res_node_lens[(i << 1) - 1]) +
+                                    (range_num << 1);
+                                for (int k = 0; k < len - 2; k++)
+                                    addrs_out[ss + k] = bssr->addr[k + 1];
+                            }
                         } else {
                             b_scan_search_reply *bssr;
                             int len, ss;
@@ -3115,12 +3117,14 @@ class pim_skip_list {
                                                scan_taskpos[i << 1],
                                                addrs_in[i << 1].id);
                                 len = bssr->len;
-                                addrs_out[i << 1] = bssr->addr[0];
-                                ss =
-                                    (i == 0 ? 0 : res_node_lens[(i << 1) - 1]) +
-                                    (range_num << 1);
-                                for (int k = 0; k < len - 1; k++)
-                                    addrs_out[ss + k] = bssr->addr[k + 1];
+                                if (len > 0) {
+                                    addrs_out[i << 1] = bssr->addr[0];
+                                    ss =
+                                        (i == 0 ? 0 : res_node_lens[(i << 1) - 1]) +
+                                        (range_num << 1);
+                                    for (int k = 0; k < len - 1; k++)
+                                        addrs_out[ss + k] = bssr->addr[k + 1];
+                                }
                             }
                             if (not_equal_pptr(addrs_in[(i << 1) + 1],
                                                null_pptr)) {
@@ -3133,11 +3137,13 @@ class pim_skip_list {
                                                scan_taskpos[(i << 1) + 1],
                                                addrs_in[(i << 1) + 1].id);
                                 len = bssr->len;
-                                addrs_out[(i << 1) + 1] = bssr->addr[len - 1];
-                                ss = res_node_lens[i << 1] + range_num +
-                                     range_num;
-                                for (int k = 0; k < len - 1; k++)
-                                    addrs_out[ss + k] = bssr->addr[k];
+                                if (len > 0) {
+                                    addrs_out[(i << 1) + 1] = bssr->addr[len - 1];
+                                    ss = res_node_lens[i << 1] + range_num +
+                                         range_num;
+                                    for (int k = 0; k < len - 1; k++)
+                                        addrs_out[ss + k] = bssr->addr[k];
+                                }
                             }
                         }
                     });
@@ -3452,9 +3458,12 @@ class pim_skip_list {
             });
         int64_t kv_n = kv_set.size();
         auto index_set = parlay::tabulate(length, [&](int i) {
+            if (kv_n == 0) {
+                return std::make_pair((int64_t)0, (int64_t)0);
+            }
             int64_t ll = 0, rr = kv_n;
             int64_t lkey = ops[i].lkey, rkey = ops[i].rkey;
-            int64_t mid, res_ll, res_rr;
+            int64_t mid = 0, res_ll, res_rr;
             while (rr - ll > 1) {
                 mid = (ll + rr) >> 1;
                 if (lkey >= kv_set[mid].key)

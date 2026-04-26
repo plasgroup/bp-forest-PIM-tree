@@ -579,6 +579,7 @@ static inline int b_scan(int64_t bb, int64_t ee, mBptr nn, mpint64_t addrs) {
     int len = 0;
     int64_t lkeys = INT64_MIN;
     int64_t pred_addr = 0;
+    bool has_pred = false;
     Bnode bn;
     m_read_single(nn, &bn, sizeof(Bnode));
     int nnlen = (int)bn.len;
@@ -597,9 +598,10 @@ static inline int b_scan(int64_t bb, int64_t ee, mBptr nn, mpint64_t addrs) {
             if (nnkey >= bb && nnkey <= ee) {
                 addrs[len] = nnaddrs[j];
                 len++;
-            } else if(nnkey < bb && nnkey >= lkeys){
+            } else if(nnkey < bb && (!has_pred || nnkey >= lkeys)){
                 pred_addr = nnaddrs[j];
                 lkeys = nnkey;
+                has_pred = true;
             }
         }
 
@@ -607,7 +609,7 @@ static inline int b_scan(int64_t bb, int64_t ee, mBptr nn, mpint64_t addrs) {
         addrsdb = wram_addrs.la.nxt;
     }
 
-    if(lkeys != INT64_MIN) {
+    if(has_pred) {
         for (int i = len; i > 0; i--) addrs[i] = addrs[i - 1];
         addrs[0] = pred_addr;
         len++;
