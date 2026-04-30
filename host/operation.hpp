@@ -3012,9 +3012,14 @@ class pim_skip_list {
                                             (p1.first.second.id !=
                                              INVALID_DPU_ID));
                                 });
+                            size_t total = rr - ll + nnlen;
+                            auto valid_bits = parlay::sequence<int>(total);
+                            parfor_wrap(0, (int)total, [&](int i) {
+                                valid_bits[i] =
+                                    (rep_sort[i].first.second.id != INVALID_DPU_ID);
+                            });
                             parlay::scan_inclusive_inplace(
-                                rep_sort,
-                                pull_count<pair<pair<int64_t, pptr>, int>>());
+                                parlay::make_slice(valid_bits));
 
                             // Rewrite sorted (key,addr) into Reply array
                             auto rep_tmp = parlay::tabulate(
@@ -3040,12 +3045,12 @@ class pim_skip_list {
                                     size_t ii = (i << 1);
                                     size_t k = ll + ii;
                                     // Predecessor of the key in Reply arrays
-                                    op_result_buffer[k] =
-                                        rep_sort[rep_sorted[ii]].second;
+                                    int idx_lkey = valid_bits[rep_sorted[ii]] - 1,
+                                        idx_rkey = valid_bits[rep_sorted[ii + 1]] - 1;
+                                    op_result_buffer[k] = idx_lkey;
                                     // Number of keys returned
                                     int num = max(
-                                        0, rep_sort[rep_sorted[ii + 1]].second -
-                                               (int)op_result_buffer[k] - 1);
+                                        0, idx_rkey - idx_lkey - 1);
                                     op_result_buffer[k + 1] =
                                         num - op_result_buffer[k];
                                 });
@@ -3175,7 +3180,9 @@ class pim_skip_list {
                                 int num_nodes_fetch =
                                     res_node_lens[(i << 1) + 1] - ss;
                                 ss += (range_num << 1);
-                                addrs_out[i << 1] = rep_addrs[begin_in_reply];
+                                bool has_pred = (begin_in_reply >= 0);
+                                addrs_out[i << 1] = has_pred ? rep_addrs[begin_in_reply]
+                                                             : null_pptr;
                                 if (num_nodes_fetch > 0) {
                                     addrs_out[(i << 1) + 1] =
                                         rep_addrs[begin_in_reply +
@@ -3184,11 +3191,12 @@ class pim_skip_list {
                                         addrs_out[ss + k] =
                                             rep_addrs[begin_in_reply + k + 1];
                                 } else {
-                                    if ((begin_in_reply == nnlen - 1) ||
+                                    if ((begin_in_reply >= nnlen - 1) ||
                                         (rep_keys[begin_in_reply + 1] >
                                          ops_merged[i].rkey))
                                         addrs_out[(i << 1) + 1] =
-                                            rep_addrs[begin_in_reply];
+                                            has_pred ? rep_addrs[begin_in_reply]
+                                                     : null_pptr;
                                     else
                                         addrs_out[(i << 1) + 1] =
                                             rep_addrs[begin_in_reply + 1];

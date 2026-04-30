@@ -1,7 +1,7 @@
 DPU_DIR := dpu
 HOST_DIR := host
 BUILDDIR ?= build
-NR_TASKLETS ?= 12
+NR_TASKLETS ?= 11
 NR_DPUS ?= 2559
 STACK_SIZE ?= 2048
 CC = g++
