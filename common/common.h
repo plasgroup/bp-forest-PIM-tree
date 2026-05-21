@@ -3,7 +3,7 @@
 #define NR_OF_DRIVERS (3)
 
 /* Size of the buffer on which the checksum will be performed */
-#define BATCH_SIZE (2100000)
+#define BATCH_SIZE (5000000)
 
 #define MAX_L3_HEIGHT (20)
 // 12 levels
