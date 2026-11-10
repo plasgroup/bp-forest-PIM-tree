@@ -3252,7 +3252,9 @@ class pim_skip_list {
                                  : seq_max_prefix_scan.second.rkey)};
             });
             auto block_nums = parlay::sequence<int64_t>(range_num);
-            uint64_t avg_len = ops[0].rkey - ops[0].lkey;
+            uint64_t avg_len = std::max<uint64_t>(1, parlay::reduce(parlay::delayed_map(ops, [](const scan_operation& op) {
+                return static_cast<long double>(static_cast<uint64_t>(op.rkey) - static_cast<uint64_t>(op.lkey));
+            })) / length);
             parfor_wrap(0, range_num, [&](size_t i) {
                 uint64_t merge_len;
                 if (ops_merged[i].rkey >= 0 && ops_merged[i].lkey >= 0)
@@ -3271,7 +3273,7 @@ class pim_skip_list {
             auto range_tmp =
                 parlay::sequence<scan_operation>(block_idx_scan.second);
             auto split_at = [&](int64_t i, int64_t j) -> int64_t {
-                int64_t bs = ops[0].rkey - ops[0].lkey, off, sum;
+                int64_t bs = avg_len, off, sum;
                 if (__builtin_mul_overflow(bs, j, &off) ||
                     __builtin_add_overflow(ops_merged[i].lkey, off, &sum) ||
                     sum > ops_merged[i].rkey)
